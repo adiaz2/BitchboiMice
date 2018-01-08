@@ -17,7 +17,8 @@
   int IR3;      //IR 3
   int IR4;      //IR 4
   int IR5;      //IR 5
-  int TH=1000;  //Threshold
+  int THF=765;  //Threshold
+  int THS=580;
 
 void setup() {
   
@@ -128,7 +129,7 @@ bool IRC(int x)        //Function to Check if Somthing is Close to IR
   if (x==1)
   {
     IR1= analogRead(2);
-    if (IR1<TH)
+    if (IR1>THS)
       return true;
     else
       return false;
@@ -136,7 +137,7 @@ bool IRC(int x)        //Function to Check if Somthing is Close to IR
   if (x==2)
   {
     IR2= analogRead(3);
-    if (IR2<TH)
+    if (IR2>TH)
       return true;
     else
       return false;
@@ -144,7 +145,7 @@ bool IRC(int x)        //Function to Check if Somthing is Close to IR
   if (x==3)
   {
     IR3= analogRead(4);
-    if (IR3<TH)
+    if (IR3>THF)
       return true;
     else
       return false;
@@ -152,7 +153,7 @@ bool IRC(int x)        //Function to Check if Somthing is Close to IR
   if (x==4)
   {
     IR4= analogRead(5);
-    if (IR4<TH)
+    if (IR4>TH)
       return true;
      else
       return false;
@@ -160,7 +161,7 @@ bool IRC(int x)        //Function to Check if Somthing is Close to IR
   if (x==5)
   {
     IR5= analogRead(6);
-    if (IR5<TH)
+    if (IR5>THS)
       return true;
     else
       return false;

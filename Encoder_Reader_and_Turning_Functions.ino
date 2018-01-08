@@ -4,8 +4,8 @@
   int D4=7;
 
   //Encoders
-  int LE;       //Left Encoder
-  int RE;       //Right Encode
+  int LE=9;       //Left Encoder
+  int RE=10;       //Right Encode
   int LESum=0;  //Left Encoder Sum
   int RESum=0;  //Right Encoder Sum
   int LI;       //Left Instuction

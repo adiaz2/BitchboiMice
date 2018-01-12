@@ -1,11 +1,22 @@
-  int D1=2;     //H Bridge Outputs
-  int D2=3;
-  int D3=6;
-  int D4=7;
+  int D1=6;     //H Bridge Outputs
+  int D2=7;
+  int D3=9;
+  int D4=10;
+
+  //Motor
+  int LEnable=5;  //Analog pin 5
+  int REnable=6; //Analog pin 6
+  int MSpeed;
 
   //Encoders
-  int LE=9;       //Left Encoder
-  int RE=10;       //Right Encode
+  int LEA=2;     //Left Encoder A
+  int LEB=4;     //Left Encoder B
+  int REA=3;     //Right Encode A
+  int REB=5;     //Right Encode B
+  int VP=0;
+  
+  int LEV;       //
+  int REV;    
   int LESum=0;  //Left Encoder Sum
   int RESum=0;  //Right Encoder Sum
   int LI;       //Left Instuction
@@ -20,6 +31,8 @@
   int THF=765;  //Threshold
   int THS=580;
 
+  int i = 0;
+
 void setup() {
   
   //Moter
@@ -27,6 +40,8 @@ void setup() {
   pinMode(D2, OUTPUT);
   pinMode(D3, OUTPUT);
   pinMode(D4, OUTPUT);
+  pinMode(LEnable, OUTPUT);
+  pinMode(REnable, OUTPUT);
 
   //IR
   IR1= analogRead(2);   //Setting IRs to connect to Analog Pin
@@ -35,30 +50,58 @@ void setup() {
   IR4= analogRead(5);
   IR5= analogRead(6);
 
+  attachInterrupt(digitalPinToInterrupt(LEA), isr, LOW);
 
-  LI=100;
-  RI=100;
+  int i = 0;
   
   Serial.begin(9600);
+
 }
 
 void loop() {
-  LE= digitalRead(5);
-  RE= digitalRead(9);
-  LESum+=LE;
-  RESum+=RE;
-  if(LESum<=LI && RESum<=RI)
-  {
-    RT();
+    
+    //analogWrite(LEnable, 255);
+    //analogWrite(REnable, 255);
+    i++;
+    if(i<1000)
+    {
+      if(VP<10 && VP > -10)
+      {
+        LT();
+      }
+      else if(VP<-10)
+      {
+        RT();
+      }
+      else{
+        STP();
+      }
+    }
   }
-  else
-  {
-    STP();
-  }
-}
-
 //Functions
 //====================================================
+
+void isr()
+{
+  static unsigned long lastInterruptTime = 0;
+  unsigned long interruptTime= millis();
+  if (interruptTime - lastInterruptTime > 1)
+  {
+    if(digitalRead(LEB)== LOW)
+    {
+      VP++;
+    }
+    else 
+    {
+      VP--;
+    }
+  }
+  lastInterruptTime = interruptTime;
+  Serial.print(VP);
+  Serial.print("\n");
+ }
+ 
+
 //Turning Fucntions
 void LT() //Left Turn
 {
@@ -101,8 +144,8 @@ void LCCW()              //Left Counter Clock Wise
 }
 void LSTP()              //Left Stop
 {
-  digitalWrite(D1, LOW);
-  digitalWrite(D2, LOW);
+  digitalWrite(D1, HIGH);
+  digitalWrite(D2, HIGH);
 }
 
 
@@ -137,7 +180,7 @@ bool IRC(int x)        //Function to Check if Somthing is Close to IR
   if (x==2)
   {
     IR2= analogRead(3);
-    if (IR2>TH)
+    if (IR2>THF)
       return true;
     else
       return false;
@@ -153,7 +196,7 @@ bool IRC(int x)        //Function to Check if Somthing is Close to IR
   if (x==4)
   {
     IR4= analogRead(5);
-    if (IR4>TH)
+    if (IR4>THF)
       return true;
      else
       return false;
@@ -167,4 +210,3 @@ bool IRC(int x)        //Function to Check if Somthing is Close to IR
       return false;
   }
 }
-

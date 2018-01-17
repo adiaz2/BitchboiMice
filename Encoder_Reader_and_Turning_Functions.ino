@@ -54,32 +54,79 @@ void setup() {
 
   int i = 0;
   
+  
   Serial.begin(9600);
 
+  
+  moveForward();
+  leftTurn();
+  moveForward();
+  
 }
 
-void loop() {
-    
+void loop() 
+{ 
     //analogWrite(LEnable, 255);
     //analogWrite(REnable, 255);
-    i++;
-    if(i<1000)
-    {
-      if(VP<10 && VP > -10)
-      {
-        LT();
-      }
-      else if(VP<-10)
-      {
-        RT();
-      }
-      else{
-        STP();
-      }
-    }
-  }
+        
+}
 //Functions
 //====================================================
+void moveForward(){
+  //VP=0;
+  int TS = 70; //the turn sensitivity
+  while(VP != TS){
+      if(VP<TS)
+        {
+          FW();
+        }
+       else if(VP>TS)
+        {
+          BW();
+        }
+  }
+  STP();
+  VP = 0; 
+  
+}
+void leftTurn(){
+  //VP=0;
+  int TS = -20; //the turn sensitivity
+  while(VP != TS){
+      if(VP>TS)
+        {
+          LT();
+        }
+       else if(VP<TS)
+        {
+          RT();
+        }
+  }
+  STP();
+  VP = 0; 
+        
+}
+
+void rightTurn(){
+  //VP=0;
+  int TS = 20; //the turn sensitivity
+  while(VP != TS){
+      if(VP<TS)
+        {
+          RT();
+        }
+       else if(VP>TS)
+        {
+         LT();
+        }
+  }
+  STP();
+  VP = 0; 
+        
+}
+
+
+
 
 void isr()
 {
@@ -144,8 +191,8 @@ void LCCW()              //Left Counter Clock Wise
 }
 void LSTP()              //Left Stop
 {
-  digitalWrite(D1, HIGH);
-  digitalWrite(D2, HIGH);
+  digitalWrite(D1, LOW);
+  digitalWrite(D2, LOW);
 }
 
 

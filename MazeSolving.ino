@@ -303,6 +303,7 @@ void nextUnit(){
   else{
     maze[Y][X] = 2;
   }
+  delay(1000);
   //readSurroundings();
 }
 

@@ -1,26 +1,19 @@
   int D1=6;     //H Bridge Outputs
   int D2=7;
-  int D3=9;
-  int D4=10;
+  int D3=8;
+  int D4=12;
 
   //Motor
-  int LEnable=5;  //Analog pin 5
-  int REnable=6; //Analog pin 6
-  int MSpeed;
+  int LEnable=9;  //Digital pin 9
+  int REnable=10; //Digital pin 10
 
   //Encoders
   int LEA=2;     //Left Encoder A
   int LEB=4;     //Left Encoder B
   int REA=3;     //Right Encode A
   int REB=5;     //Right Encode B
-  int VP=0;
-  
-  int LEV;       //
-  int REV;    
-  int LESum=0;  //Left Encoder Sum
-  int RESum=0;  //Right Encoder Sum
-  int LI;       //Left Instuction
-  int RI;       //Right Instructions
+  int VPL= 0;    //Virtual Position Left
+  int VPR= 0;    //Virtual Postion Right    
 
   //IR
   int IR1;      //IR 1
@@ -31,9 +24,19 @@
   int THF=765;  //Threshold
   int THS=580;
 
-  int i = 0;
+  //Error Correcting setup
+  int masterPower=100;
+  int slavePower=100;
+  int error=0;
+  int kp= 2;
+
+  int i=0;
+
 
 void setup() {
+  
+  attachInterrupt(digitalPinToInterrupt(REA), isr, FALLING);
+  attachInterrupt(digitalPinToInterrupt(LEA), isl, FALLING);
   
   //Moter
   pinMode(D1, OUTPUT);  //Delcaring Outputs
@@ -49,102 +52,67 @@ void setup() {
   IR3= analogRead(4);
   IR4= analogRead(5);
   IR5= analogRead(6);
-
-  attachInterrupt(digitalPinToInterrupt(LEA), isr, LOW);
-
-  int i = 0;
-  
   
   Serial.begin(9600);
-
-  
-  moveForward();
-  leftTurn();
-  moveForward();
-  
 }
 
 void loop() 
-{ 
-    //analogWrite(LEnable, 255);
-    //analogWrite(REnable, 255);
-        
+{
+
+    analogWrite(LEnable, slavePower);   //Speed
+    analogWrite(REnable, masterPower);
+
+//Straight Line Correction
+//    error= VPR-VPL;
+//    slavePower += error / kp;
+//    VPL=0;
+//    VPR=0;    
+//    delay(1000); 
 }
+
 //Functions
 //====================================================
-void moveForward(){
-  //VP=0;
-  int TS = 70; //the turn sensitivity
-  while(VP != TS){
-      if(VP<TS)
-        {
-          FW();
-        }
-       else if(VP>TS)
-        {
-          BW();
-        }
-  }
-  STP();
-  VP = 0; 
-  
-}
-void leftTurn(){
-  //VP=0;
-  int TS = -20; //the turn sensitivity
-  while(VP != TS){
-      if(VP>TS)
-        {
-          LT();
-        }
-       else if(VP<TS)
-        {
-          RT();
-        }
-  }
-  STP();
-  VP = 0; 
-        
-}
 
-void rightTurn(){
-  //VP=0;
-  int TS = 20; //the turn sensitivity
-  while(VP != TS){
-      if(VP<TS)
-        {
-          RT();
-        }
-       else if(VP>TS)
-        {
-         LT();
-        }
-  }
-  STP();
-  VP = 0; 
-        
-}
-
-
-
-
-void isr()
+//Encoder Inturupt Functions
+void isl()                                        //Left Encoder
 {
-  static unsigned long lastInterruptTime = 0;
-  unsigned long interruptTime= millis();
-  if (interruptTime - lastInterruptTime > 1)
+  static unsigned long lastInterruptTimeL = 0;
+  unsigned long interruptTimeL= millis();
+  if (interruptTimeL - lastInterruptTimeL > 1)
   {
     if(digitalRead(LEB)== LOW)
     {
-      VP++;
+      VPL++;
     }
     else 
     {
-      VP--;
+      VPL--;
     }
   }
-  lastInterruptTime = interruptTime;
-  Serial.print(VP);
+  lastInterruptTimeL = interruptTimeL;
+  Serial.print("Left");
+  Serial.print(VPL);
+  Serial.print("\n");
+ }
+
+void isr()                                        //Right Encoder
+{
+  static unsigned long lastInterruptTimeR = 0;
+  unsigned long interruptTimeR= millis();
+  if (interruptTimeR - lastInterruptTimeR > 1)
+  {
+    if(digitalRead(REB)== LOW)
+    {
+      VPR--;
+    }
+    else 
+    {
+      VPR++;
+    }
+  }
+  lastInterruptTimeR = interruptTimeR;
+  Serial.print("Right");
+  Serial.print(VPR);
   Serial.print("\n");
  }
  
@@ -162,8 +130,12 @@ void RT() //Right Turn
 }
 void FW() //Foward
 {
-  LCW();
-  RCW();
+  digitalWrite(D1, LOW);
+  digitalWrite(D2, HIGH);
+
+  digitalWrite(D3, HIGH);
+  digitalWrite(D4, LOW);
+  
 }
 void BW() //Backwards
 {

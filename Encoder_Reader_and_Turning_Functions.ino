@@ -186,7 +186,7 @@ void RSTP()             //Right Stop
 }
 
 //IR Functions
-bool IRC(int x)        //Function to Check if Somthing is Close to IR
+bool IRC(int x)         //Function to Check if Somthing is Close to IR
 {
   if (x==1)
   {

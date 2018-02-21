@@ -1,3 +1,36 @@
+#include <Wire.h>
+#include <SPI.h>
+#include <math.h>
+#include <Adafruit_LSM9DS1.h>
+#include <Adafruit_Sensor.h>  // not used in this demo but required!
+#include <digitalWriteFast.h>
+
+  // i2c
+  Adafruit_LSM9DS1 lsm = Adafruit_LSM9DS1();
+  int startDegree = 0;
+  int sensitivity = 10;
+  int degree;
+  int north;
+  int northHigh;
+  int northLow;
+  int east;
+  int eastHigh;
+  int eastLow;
+  int south;
+  int southHigh;
+  int southLow;
+  int west;
+  int westHigh;
+  int westLow;
+  bool firstTime = true;
+
+  #define LSM9DS1_SCK A5
+  #define LSM9DS1_MISO 12
+  #define LSM9DS1_MOSI A4
+  #define LSM9DS1_XGCS 6
+  #define LSM9DS1_MCS 5
+
+  
   int D1=6;     //H Bridge Outputs
   int D2=7;
   int D3=8;
@@ -21,22 +54,40 @@
   int IR3;      //IR 3
   int IR4;      //IR 4
   int IR5;      //IR 5
-  int THF=765;  //Threshold
-  int THS=580;
+  int THF=560;  //Threshold
+  int THS=730;
 
   //Error Correcting setup
-  int masterPower=100;
-  int slavePower=100;
+  int masterPower=150;
+  int slavePower=150;
   int error=0;
-  int kp= 2;
+  int kp= 10;
 
-  int i=0;
+  boolean movingForward = false;
 
+void setupSensor()
+{
+  // 1.) Set the accelerometer range
+  lsm.setupAccel(lsm.LSM9DS1_ACCELRANGE_2G);
+  //lsm.setupAccel(lsm.LSM9DS1_ACCELRANGE_4G);
+  //lsm.setupAccel(lsm.LSM9DS1_ACCELRANGE_8G);
+  //lsm.setupAccel(lsm.LSM9DS1_ACCELRANGE_16G);
+  
+  // 2.) Set the magnetometer sensitivity
+  lsm.setupMag(lsm.LSM9DS1_MAGGAIN_4GAUSS);
+  //lsm.setupMag(lsm.LSM9DS1_MAGGAIN_8GAUSS);
+  //lsm.setupMag(lsm.LSM9DS1_MAGGAIN_12GAUSS);
+  //lsm.setupMag(lsm.LSM9DS1_MAGGAIN_16GAUSS);
+
+  // 3.) Setup the gyroscope
+  lsm.setupGyro(lsm.LSM9DS1_GYROSCALE_245DPS);
+  //lsm.setupGyro(lsm.LSM9DS1_GYROSCALE_500DPS);
+  //lsm.setupGyro(lsm.LSM9DS1_GYROSCALE_2000DPS);
+}
 
 void setup() {
-  
-  attachInterrupt(digitalPinToInterrupt(REA), isr, FALLING);
-  attachInterrupt(digitalPinToInterrupt(LEA), isl, FALLING);
+  attachInterrupt(digitalPinToInterrupt(LEA), isl, RISING);  
+  attachInterrupt(digitalPinToInterrupt(REA), isr, RISING);
   
   //Moter
   pinMode(D1, OUTPUT);  //Delcaring Outputs
@@ -47,27 +98,143 @@ void setup() {
   pinMode(REnable, OUTPUT);
 
   //IR
-  IR1= analogRead(2);   //Setting IRs to connect to Analog Pin
-  IR2= analogRead(3);
-  IR3= analogRead(4);
-  IR4= analogRead(5);
+  IR1= analogRead(0);   //Setting IRs to connect to Analog Pin
+  IR2= analogRead(1);
+  IR3= analogRead(2);
+  IR4= analogRead(3);
   IR5= analogRead(6);
+
+    while (!Serial) {
+    delay(1); // will pause Zero, Leonardo, etc until serial console opens
+  }
+  
+  Serial.println("LSM9DS1 data read demo");
+  
+  // Try to initialise and warn if we couldn't detect the chip
+  if (!lsm.begin())
+  {
+    Serial.println("Oops ... unable to initialize the LSM9DS1. Check your wiring!");
+    while (1);
+  }
+  Serial.println("Found LSM9DS1 9DOF");
+
+  // helper to just set the default scaling we want, see above!
+  setupSensor();
+
+  //startDegree = atan(m.magnetic.y/m.magnetic.x)*180/M_PI);
   
   Serial.begin(9600);
 }
+int IRV1;
+int IRV2;
+int IRV3;
+int IRV4;
+int IRV5;
 
 void loop() 
 {
+  //IR
+  IRV1=analogRead(A0);
+  IRV2=analogRead(A1);
+  IRV3=analogRead(A2);
+  IRV4=analogRead(A3);
+  IRV5=analogRead(A7);
+//  Serial.print("IR5");
+//  Serial.print("\t");
+  Serial.println(IRV2);
+//  Serial.print("\n");
+//  Serial.print("IR4");
+  Serial.print("\t");
+  Serial.println(IRV4);
+  Serial.print("\n");
+  Serial.print("\n");
+  delay(100);
+    lsm.read();  /* ask it to read in the data */ 
+  
+    /* Get a new sensor event */ 
+    sensors_event_t a, m, g, temp;
+  
+    lsm.getEvent(&a, &m, &g, &temp); 
 
-    analogWrite(LEnable, slavePower);   //Speed
     analogWrite(REnable, masterPower);
+    analogWrite(LEnable, slavePower);   //Speed
+//    FW();
 
-//Straight Line Correction
+//    Serial.println();
+  degree = atan(m.magnetic.y/m.magnetic.x)*360/M_PI;
+  
+  if(degree < 0){
+    degree += 360;
+  }
+  if(degree>360){
+    degree -= 360;
+  }
+  if(firstTime){
+    startDegree = degree;
+    
+    north = startDegree;
+    if(north<sensitivity){
+      northLow = 360-sensitivity+north;
+    }
+    else{
+      northLow = (north-sensitivity)%360;
+    }
+    northHigh = (north+sensitivity)%360;
+    
+    east = (startDegree+90)%360;
+    if(east<sensitivity){
+      eastLow = 360-sensitivity+east;
+    }
+    else{
+      eastLow = (east-sensitivity)%360;
+    }
+    eastHigh = (east+sensitivity)%360;
+    
+    south = (startDegree+180)%360;
+    if(south<sensitivity){
+      southLow = 360-sensitivity+south;
+    }
+    else{
+      southLow = (south-sensitivity)%360;
+    }
+    southHigh = (south+sensitivity)%360;
+    
+    west = (startDegree+270)%360;
+    if(west<sensitivity){
+      westLow = 360-sensitivity+west;
+    }
+    else{
+      westLow = (west-sensitivity)%360;
+    }
+    westHigh = (west+sensitivity)%360;
+    
+    firstTime = false;
+  }
+  if(degree>northLow && degree<northHigh){
+//    Serial.println("North");
+  }
+  else if(degree>eastLow && degree<eastHigh){
+//    Serial.println("East");
+  }
+  else if(degree>southLow && degree<southHigh){
+//    Serial.println("South");
+  }
+  else if(degree>westLow && degree<westHigh){
+//    Serial.println("West");
+  }
+  
+//  Serial.println(degree);
+//  Serial.println();
+    
+   
+    
+
+  //Straight Line Correction
 //    error= VPR-VPL;
-//    slavePower += error / kp;
+//    slavePower += error *kp;
 //    VPL=0;
 //    VPR=0;    
-//    delay(1000); 
+//    delay(10); 
 }
 
 //Functions
@@ -76,44 +243,18 @@ void loop()
 //Encoder Inturupt Functions
 void isl()                                        //Left Encoder
 {
-  static unsigned long lastInterruptTimeL = 0;
-  unsigned long interruptTimeL= millis();
-  if (interruptTimeL - lastInterruptTimeL > 1)
-  {
-    if(digitalRead(LEB)== LOW)
-    {
       VPL++;
-    }
-    else 
-    {
-      VPL--;
-    }
-  }
-  lastInterruptTimeL = interruptTimeL;
-  Serial.print("Left");
-  Serial.print(VPL);
-  Serial.print("\n");
+//  Serial.print("Left");
+  //Serial.print(VPL);
+ // Serial.print("\n");
  }
 
 void isr()                                        //Right Encoder
 {
-  static unsigned long lastInterruptTimeR = 0;
-  unsigned long interruptTimeR= millis();
-  if (interruptTimeR - lastInterruptTimeR > 1)
-  {
-    if(digitalRead(REB)== LOW)
-    {
-      VPR--;
-    }
-    else 
-    {
-      VPR++;
-    }
-  }
-  lastInterruptTimeR = interruptTimeR;
-  Serial.print("Right");
-  Serial.print(VPR);
-  Serial.print("\n");
+  VPR++;
+  //Serial.print("Right");
+  //Serial.print(VPR);
+  //Serial.print("\n");
  }
  
 
@@ -125,16 +266,17 @@ void LT() //Left Turn
 }
 void RT() //Right Turn
 {
-  RCCW();
-  LCW();
+  int currentDegree = degree;
+  while(degree){
+      RCCW();
+      LCW(); 
+  }
+
 }
 void FW() //Foward
 {
-  digitalWrite(D1, LOW);
-  digitalWrite(D2, HIGH);
-
-  digitalWrite(D3, HIGH);
-  digitalWrite(D4, LOW);
+  LCW();
+  RCW();
   
 }
 void BW() //Backwards
@@ -186,6 +328,7 @@ void RSTP()             //Right Stop
 }
 
 //IR Functions
+
 bool IRC(int x)         //Function to Check if Somthing is Close to IR
 {
   if (x==1)

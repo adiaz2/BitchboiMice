@@ -1,0 +1,221 @@
+#include <Wire.h>
+#include <SPI.h>
+#include <math.h>
+#include <Adafruit_LSM9DS1.h>
+#include <Adafruit_Sensor.h>  // not used in this demo but required!
+#include <digitalWriteFast.h>
+
+  
+  int D1=6;     //H Bridge Outputs
+  int D2=7;
+  int D3=8;
+  int D4=12;
+
+  //Motor
+  int LEnable=9;  //Digital pin 9
+  int REnable=10; //Digital pin 10
+  
+  
+
+  //Encoders
+  int LEA=2;     //Left Encoder A
+  int LEB=4;     //Left Encoder B
+  int REA=3;     //Right Encode A
+  int REB=5;     //Right Encode B
+  int VPL= 0;    //Virtual Position Left
+  int VPR= 0;    //Virtual Postion Right
+  int Master= 160;
+  int Slave= 160;
+ 
+  int error=0;
+  int kp=3;
+
+  
+
+
+
+
+void setup() {
+  // put your setup code here, to run once:
+  attachInterrupt(digitalPinToInterrupt(LEA), isl, RISING);  
+  attachInterrupt(digitalPinToInterrupt(REA), isr, RISING);
+  Serial.begin(9600);
+  analogWrite(LEnable, Master);
+  analogWrite(REnable, Slave);
+  FW();
+  
+}
+
+void task main(){
+  VPL=0;
+  VPR=0;
+    delay(5000);
+  
+  analogWrite(LEnable, 150);
+  analogWrite(REnable, 150);
+
+  LCCW();
+  RCW();
+
+  //Since the wheels may go at slightly different speeds due to manufacturing tolerances, etc., 
+  //we need to test both encoders and control both motors separately. This may result in one motor
+  //going for longer than another but it will ultimately result in a much more accurate turn.
+  while(VPL < 200 && VPR > -200){
+    if (VPR > 200){
+      STP();
+    }
+    if(VPL < -200){
+      STP();
+    }
+  }
+
+}
+void loop() {
+  // put your main code here, to run repeatedly:
+
+//  Serial.print("Left");
+//  Serial.print("\n");
+//  Serial.print(VPL);
+//  Serial.print("\n");
+//
+//  Serial.print("Right");
+//  Serial.print("\n");
+//  Serial.print(VPR);
+//  Serial.print("\n");
+//  
+//
+// Serial.print("Master");
+// Serial.print("\n");
+// Serial.print(Master);
+// Serial.print("\n");
+//
+//Serial.print("Slave");
+//Serial.print("\n");
+//Serial.print(Slave);
+//Serial.print("\n");
+//
+//Serial.print("error");
+//Serial.print("\n");
+//Serial.print(error);
+//Serial.print("\n");
+//
+//Serial.print("\n");
+
+// error= VPL-VPR;
+
+ 
+
+//  Slave += error*kp;
+//
+//  if (Slave>255)
+//  {
+//    Slave=255;
+//  }
+//  if (Slave<25)
+//  {
+//    Slave=25;
+//  }
+//
+//  analogWrite(LEnable, Master);
+//  analogWrite(REnable, Slave);
+//  
+//  VPL=0;
+//  VPR=0;
+//    delay(5000);
+//  
+//  analogWrite(LEnable, 150);
+//  analogWrite(REnable, 150);
+//
+//  LCCW();
+//  RCW();
+
+  
+
+}
+
+
+
+
+
+
+
+
+void isl()                                        //Left Encoder
+{
+  if (digitalReadFast(LEB)== HIGH)
+  {
+    VPL++;
+  }
+  else
+  {
+    VPL--;
+  }
+
+  
+ }
+
+void isr()                                        //Left Encoder
+{
+  if (digitalReadFast(REB)== LOW)
+  {
+    VPR++;
+  }
+  else
+  {
+    VPR--;
+  }
+ }
+
+void FW() //Foward
+{
+  LCW();
+  RCW();
+  
+}
+void BW() //Backwards
+{
+  LCCW();
+  RCCW();
+}
+void STP() //Stop
+{
+  LSTP();
+  RSTP();
+}
+
+//Wheel Functions
+
+//Left Functions 
+void LCW()               //Left Clock Wise
+{
+  digitalWrite(D1, LOW);
+  digitalWrite(D2, HIGH);
+}
+void LCCW()              //Left Counter Clock Wise
+{
+  digitalWrite(D1, HIGH);
+  digitalWrite(D2, LOW);
+}
+void LSTP()              //Left Stop
+{
+  digitalWrite(D1, LOW);
+  digitalWrite(D2, LOW);
+}
+
+
+//Right Functions
+void RCW()              //Right Clock Wise
+{
+  digitalWrite(D3, HIGH);
+  digitalWrite(D4, LOW);
+}
+void RCCW()             //Right Counter Clock Wise
+{
+  digitalWrite(D3, LOW);
+  digitalWrite(D4, HIGH);
+}
+void RSTP()             //Right Stop
+{
+  digitalWrite(D3, LOW);
+  digitalWrite(D4, LOW);
+}

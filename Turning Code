@@ -26,6 +26,8 @@
   int REB=5;     //Right Encode B
   int VPL= 0;    //Virtual Position Left
   int VPR= 0;    //Virtual Postion Right
+  int VPMin = 55;
+  int VPMax = 65;
   int Master= 160;
   int Slave= 160;
  
@@ -51,12 +53,13 @@ void setup() {
   analogWrite(LEnable, 220);
   analogWrite(REnable, 220);
 
-   rTrn();
+   lTrn();
    delay (1000);
-   rTrn();
+   lTrn();
    delay (1000);
-   rTrn;
-
+   lTrn();
+   delay(1000);
+   lTrn();
   //Since the wheels may go at slightly different speeds due to manufacturing tolerances, etc., 
   //we need to test both encoders and control both motors separately. This may result in one motor
   //going for longer than another but it will ultimately result in a much more accurate turn.
@@ -194,59 +197,53 @@ void loop() {
 
 
 
-void rTrn()
+void lTrn()
 {
  boolean rightWheel = false;
   boolean leftWheel = false;
   
    while(rightWheel == false || leftWheel == false){
-  Serial.print("Left");
-  Serial.print("\n");
-  Serial.print(VPL);
-  Serial.print("\n");
+//  Serial.print("Left");
+//  Serial.print("\n");
+//  Serial.print(VPL);
+//  Serial.print("\n");
+//
+//  Serial.print("Right");
+//  Serial.print("\n");
+//  Serial.print(VPR);
+//  Serial.print("\n");
 
-  Serial.print("Right");
-  Serial.print("\n");
-  Serial.print(VPR);
-  Serial.print("\n");
+    
 
- 
-    if(VPR<60)
+    if ((VPR > VPMin) && (VPR < VPMax))
+    {
+      RSTP();
+      rightWheel = true;
+    }
+    else if(VPR<VPMin && !rightWheel)
     {
       RCW();
     }
 
-    if(VPR > 70)
+    else if(VPR > VPMax && !rightWheel)
     {
      RCCW(); 
     }
     
-    if ((VPR > 60) && (VPR < 70))
+    
+    if(VPL < -1*VPMin && VPL > -1*VPMax)
     {
-      
-      RSTP();
-      rightWheel = true;
+      LSTP();
+      leftWheel = true;
     }
-
-    if(VPL>-60)
+    else if(VPL>-1*VPMin && !leftWheel)
     {
       LCCW();
     }
-    if (VPL < -70)
+    else if (VPL < -1*VPMax && !leftWheel)
     {
       LCW();
     }
-     if(VPL < -60 && VPL > -70)
-    {
-      LSTP();
-      rightWheel = true;
-    }
-
-//    if((VPR > 60) && (VPR < 70) && (VPL < -60 && VPL > -70))
-//    {
-//      return;
-//    }
-   // return;
     
   }
   VPR = 0;
@@ -254,7 +251,62 @@ void rTrn()
   return;
  
 }
+void rTrn()
+{
+ boolean rightWheel = false;
+  boolean leftWheel = false;
 
+
+  
+   while(rightWheel == false || leftWheel == false){
+//  Serial.print("Left");
+//  Serial.print("\n");
+//  Serial.print(VPL);
+//  Serial.print("\n");
+//
+//  Serial.print("Right");
+//  Serial.print("\n");
+//  Serial.print(VPR);
+//  Serial.print("\n");
+
+    
+
+    if ((VPL > VPMin) && (VPL < VPMax))
+    {
+      LSTP();
+      leftWheel = true;
+    }
+    else if(VPL<VPMin && !leftWheel)
+    {
+      LCW();
+    }
+
+    else if(VPL > VPMax && !leftWheel)
+    {
+     LCCW(); 
+    }
+    
+    
+    if(VPR < -1*VPMin && VPR > -1*VPMax)
+    {
+      RSTP();
+      rightWheel = true;
+    }
+    else if(VPR>-1*VPMin && !rightWheel)
+    {
+      RCCW();
+    }
+    else if (VPR < -1*VPMax && !rightWheel)
+    {
+      RCW();
+    }
+    
+  }
+  VPR = 0;
+  VPL = 0;
+  return;
+ 
+}
 
 
 void isl()                                        //Left Encoder
